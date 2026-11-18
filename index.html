@@ -2,6 +2,9 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<script>try{if(window.AndroidNative)document.documentElement.classList.add('apk');}catch(e){}</script>
+<style id="apkSafeTop">:root{--sat:env(safe-area-inset-top,0px);}html.apk{--sat:6px;}</style>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>SANN Toolbox (SannToolbox) – Kumpulan Tools, Kalkulator &amp; Game Gratis</title>
 <meta name="description" content="SANN Toolbox adalah aplikasi all-in-one berbasis web gratis yang dibuat oleh Ali Shofi Sandy Hendrawan, atau yang lebih sering dikenal Sandrian. 170+ tools gratis: kalkulator, game, produktivitas, perencana belanja, dan asisten SANN AI untuk memudahkan semua pengguna.">
@@ -68,7 +71,7 @@ button{font-family:inherit;}
 /* ===== TOPBAR ===== */
 #topbar{
   position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:8px;
-  padding:4px 16px 6px; padding-top:calc(4px + env(safe-area-inset-top));
+  padding:4px 16px 6px; padding-top:calc(4px + var(--sat));
   background:linear-gradient(180deg,var(--bg) 70%,transparent); backdrop-filter:blur(6px);
 }
 #topbar::after{content:'';position:absolute;left:0;right:0;top:0;height:120px;pointer-events:none;z-index:-1;
@@ -456,7 +459,7 @@ input[type=color]{width:100%;height:44px;border-radius:12px;border:1px solid var
 @keyframes cpIn{from{opacity:0;transform:translateX(-50%) translateY(14px);}to{opacity:1;transform:translateX(-50%);}}
 .cp-bg{position:absolute;inset:0;z-index:0;background-color:var(--bg);background-image:radial-gradient(circle at 15% 10%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 45%),radial-gradient(circle at 90% 85%,color-mix(in srgb,var(--accent2,var(--accent)) 14%,transparent),transparent 50%);background-size:cover;background-position:center;}
 .cp-bg.has-img::after{content:'';position:absolute;inset:0;background:var(--bg);opacity:var(--tint,.15);}
-.cp-head{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:color-mix(in srgb,var(--surface) 88%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
+.cp-head{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:calc(8px + var(--sat)) 12px 8px;background:color-mix(in srgb,var(--surface) 88%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
 .cp-back,.cp-more{width:38px;height:38px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;padding:0;}
 .cp-who{flex:1;display:flex;align-items:center;gap:10px;min-width:0;cursor:pointer;}
 .cp-ava{position:relative;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2,var(--accent)));color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-weight:800;overflow:hidden;flex-shrink:0;}
@@ -860,7 +863,7 @@ body.light .section-label{color:var(--text);opacity:.8;}
 /* full menu drawer */
 #menuOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:none;}
 #menuOverlay.show{display:block;}
-#menuDrawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:340px;background:var(--surface);z-index:91;transform:translateX(-105%);transition:.25s;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top)) 14px 20px;}
+#menuDrawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:340px;background:var(--surface);z-index:91;transform:translateX(-105%);transition:.25s;overflow-y:auto;padding:calc(16px + var(--sat)) 14px 20px;}
 #menuDrawer.show{transform:translateX(0);}
 .menu-cat{font-size:12.5px;font-weight:800;letter-spacing:.3px;color:#fff;margin:18px 0 8px;padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);box-shadow:0 4px 10px -6px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;}
 .menu-cat:first-child{margin-top:0;}
@@ -1589,7 +1592,7 @@ body.light .pf-sb-card{box-shadow:0 6px 14px -10px rgba(40,60,120,.35);}
   position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;height:100%;z-index:300;
   display:flex;flex-direction:column;background:var(--iu-bg);color:var(--text);overflow:hidden;animation:cpIn .22s ease;}
 body.light .iu-page{--iu-bg:#fff;--iu-card:#f4f5f9;--iu-field:#fff;--iu-line:#dde1ec;}
-.iu-top{flex-shrink:0;display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 11px;background:var(--iu-bg);border-bottom:1px solid var(--iu-line);}
+.iu-top{flex-shrink:0;display:flex;align-items:center;gap:12px;padding:calc(10px + var(--sat)) 14px 11px;background:var(--iu-bg);border-bottom:1px solid var(--iu-line);}
 .iu-back{width:40px;height:40px;border-radius:50%;border:1px solid var(--iu-line);background:var(--iu-card);color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;padding:0;}
 .iu-back:active{transform:scale(.94);}
 .iu-top-ic{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent-end));box-shadow:0 6px 16px -8px var(--accent);}
@@ -1644,7 +1647,7 @@ body.light .iu-page{--iu-bg:#fff;--iu-card:#f4f5f9;--iu-field:#fff;--iu-line:#dd
    Layar penuh selebar HP. Admin: kiri = form tulis update & notifikasi, kanan = riwayat. User: satu kolom lebar. */
 @media (orientation:landscape) and (max-height:620px){
   .iu-page{max-width:none;}
-  .iu-top{gap:10px;padding:max(6px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 6px max(14px,env(safe-area-inset-left));}
+  .iu-top{gap:10px;padding:max(6px,var(--sat)) max(14px,env(safe-area-inset-right)) 6px max(14px,env(safe-area-inset-left));}
   .iu-back{width:32px;height:32px;}
   .iu-back svg{width:17px;height:17px;}
   .iu-top-ic{width:32px;height:32px;border-radius:11px;}
@@ -1913,11 +1916,11 @@ i[class^=svi-]{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.
   html body[data-page="home"] #app{max-width:none;}
 
   /* topbar */
-  html body[data-page="home"] #topbar{height:var(--lt-top);padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));gap:10px;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
+  html body[data-page="home"] #topbar{height:var(--lt-top);padding:var(--sat) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));gap:10px;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
   html body[data-page="home"] #topbar::after{display:none;}
   html body[data-page="home"] #topbar .icon-btn{width:38px;height:38px;}
   html body[data-page="home"] #topbar .brand{font-size:17px;}
-  html body[data-page="home"] .home-greet{display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;top:env(safe-area-inset-top);left:50%;transform:translateX(-50%);height:var(--lt-top);z-index:45;pointer-events:none;text-align:center;width:max-content;max-width:44vw;}
+  html body[data-page="home"] .home-greet{display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;top:var(--sat);left:50%;transform:translateX(-50%);height:var(--lt-top);z-index:45;pointer-events:none;text-align:center;width:max-content;max-width:44vw;}
   html body[data-page="home"] .home-greet .page-title{margin:0;font-size:20px;line-height:1.1;white-space:nowrap;}
   html body[data-page="home"] .home-greet .page-sub{margin:0;font-size:11px;line-height:1.25;white-space:nowrap;}
   html body[data-page="home"] .home-clock{display:flex;align-items:center;gap:6px;margin:2px 0 0;font-size:10.5px;line-height:1.2;color:var(--muted);white-space:nowrap;}
@@ -2008,7 +2011,7 @@ i[class^=svi-]{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.
 @media (orientation:landscape) and (max-height:620px){
   html body[data-page="other"]{--lt-top:52px;--lt-glass:color-mix(in srgb,var(--surface) 72%,transparent);--lt-line:color-mix(in srgb,var(--text) 13%,transparent);}
   html body[data-page="other"] #app{max-width:none;}
-  html body[data-page="other"] #topbar{height:var(--lt-top);padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));gap:10px;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
+  html body[data-page="other"] #topbar{height:var(--lt-top);padding:var(--sat) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));gap:10px;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
   html body[data-page="other"] #topbar::after{display:none;}
   html body[data-page="other"] #topbar .icon-btn{width:34px;height:34px;}
   html body[data-page="other"] #topbar .brand{font-size:16px;}
@@ -2471,7 +2474,7 @@ i[class^=svi-]{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.
   #apList:not(:has(.nx-empty)){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
   /* Chat / Pesan: layar penuh selebar HP */
   .chat-page{max-width:none;}
-  .cp-head{padding:max(5px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 5px max(12px,env(safe-area-inset-left));gap:8px;}
+  .cp-head{padding:max(5px,var(--sat)) max(12px,env(safe-area-inset-right)) 5px max(12px,env(safe-area-inset-left));gap:8px;}
   /* Toko Avatar & Border */
   html body[data-page="other"] .avatar-grid,html body[data-page="other"] .border-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;}
 }
@@ -2482,7 +2485,7 @@ i[class^=svi-]{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.
 .cs-panel{overscroll-behavior:contain;}
 
 /* ===== MENU GARIS TIGA: tampilan ringkas (akordeon kategori) ===== */
-#menuDrawer{width:min(78%,320px);padding:calc(10px + env(safe-area-inset-top)) 10px 16px;}
+#menuDrawer{width:min(78%,320px);padding:calc(10px + var(--sat)) 10px 16px;}
 #menuDrawer .md-head{display:flex;align-items:center;gap:9px;margin:0 0 9px;}
 #menuDrawer .md-t{flex:1;min-width:0;}
 #menuDrawer .md-nm{font-family:var(--font-display);font-weight:800;font-size:15px;line-height:1.1;}
@@ -2686,6 +2689,10 @@ html body.custom-bg[data-kind="tool"] #topbar,
 html body.light.custom-bg[data-kind="tool"] #topbar,
 html body[data-game="1"] #topbar{background:var(--bg) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;}
 html body[data-kind="tool"] #topbar::after,html body[data-game="1"] #topbar::after{display:none !important;}
+/* GAME = halaman penuh sendiri: tanpa topbar (hamburger/SANN/Lv/chat/suara/tema) dan tanpa pita atas */
+html body[data-game="1"] #topbar{display:none !important;}
+html body[data-game="1"] #content{padding-top:max(6px,env(safe-area-inset-top,0px)) !important;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)) !important;}
+html body[data-game="1"] #appBgLayer{display:none !important;}
 </style>
 </head>
 <body>
@@ -3293,7 +3300,7 @@ _bootStage('Menyiapkan tema…', 15);
   }, 20000);
 })();
 /* Diagnosa: versi build + status kalau boot macet >7 detik (screenshot ini kalau masih mentok) */
-window._SANN_BUILD='b8-20261118';
+window._SANN_BUILD='b10-20261118';
 setTimeout(function(){
   try{
     var el=document.getElementById('bootSplash'); if(!el||el.dataset.hidden) return;
@@ -19041,7 +19048,7 @@ TOOL_RENDERERS['sann-ai'] = function(el){
       #aiFull{position:fixed;left:0;right:0;top:0;height:100vh;height:100dvh;z-index:2000;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden;}
       #aiFull::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(110% 55% at 50% -8%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 62%),radial-gradient(70% 40% at 100% 100%,color-mix(in srgb,var(--accent-end,var(--accent2)) 14%,transparent),transparent 70%);}
       #aiFull > *{position:relative;}
-      .aif-head{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;border-bottom:1px solid color-mix(in srgb,var(--border) 70%,transparent);background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+      .aif-head{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--sat)) 12px 10px;border-bottom:1px solid color-mix(in srgb,var(--border) 70%,transparent);background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
       .aif-btn{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:color-mix(in srgb,var(--accent) 8%,var(--surface2));border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border));color:var(--text);cursor:pointer;font-size:12px;font-weight:700;}
       .aif-btn:active{transform:scale(.94);}
       .aif-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
@@ -23205,7 +23212,7 @@ TOOL_RENDERERS['g-chess'] = (el)=>{
         .chs-side{flex:1 1 0;min-width:190px;max-width:340px;}
       }
       /* ---- Layar penuh ---- */
-      .chs-root.fs{position:fixed;inset:0;z-index:350;background:var(--bg,#0b0d14);padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));overflow:auto;align-items:center;justify-content:center;}
+      .chs-root.fs{position:fixed;inset:0;z-index:350;background:var(--bg,#0b0d14);padding:max(10px,var(--sat)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));overflow:auto;align-items:center;justify-content:center;}
       .chs-root.fs .chs-board{width:min(94vw,calc(100vh - 220px));max-width:none;}
       @media (orientation:landscape){
         .chs-root.fs{flex-direction:row;gap:18px;}
@@ -25766,7 +25773,7 @@ html body[data-bn]:not([data-bn="default"]) #bottomnav{display:none!important}
 .bx2-wl.open{opacity:1}
 /* launchpad */
 #bnx .bx2-fb3{position:absolute;left:50%;margin-left:-28px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-end,var(--accent)));box-shadow:0 8px 22px -6px var(--accent);display:grid;place-items:center;z-index:22}
-.bx2-lp{position:absolute;inset:0;z-index:40;background:color-mix(in srgb,var(--bg,#0e0f22) 78%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:.25s;overflow:auto;box-sizing:border-box;padding:calc(24px + env(safe-area-inset-top,0px)) 18px 110px}
+.bx2-lp{position:absolute;inset:0;z-index:40;background:color-mix(in srgb,var(--bg,#0e0f22) 78%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:.25s;overflow:auto;box-sizing:border-box;padding:calc(24px + var(--sat)) 18px 110px}
 .bx2-lp.open{opacity:1;pointer-events:auto}
 .bx2-lpc{max-width:480px;margin:0 auto}.bx2-lpc h3{margin:14px 4px 10px;font-size:14px;color:var(--text)}
 .bx2-lg{display:grid;gap:10px;grid-template-columns:repeat(4,1fr)}
