@@ -3284,7 +3284,7 @@ _bootStage('Menyiapkan tema…', 15);
   }, 20000);
 })();
 /* Diagnosa: versi build + status kalau boot macet >7 detik (screenshot ini kalau masih mentok) */
-window._SANN_BUILD='b6-20261115';
+window._SANN_BUILD='b7-20261118';
 setTimeout(function(){
   try{
     var el=document.getElementById('bootSplash'); if(!el||el.dataset.hidden) return;
@@ -6974,8 +6974,8 @@ const CATS = [
  {id:'waktu', em:'🕒', nm:'Waktu', desc:'Stopwatch, alarm, kalender', tools:[
    {id:'stopwatch', em:'⏱️', nm:'Stopwatch', desc:'Hitung waktu naik dengan fitur lap'},
    {id:'countdown', em:'⏳', nm:'Countdown Timer', desc:'Hitung mundur dari durasi tertentu'},
-   {id:'alarm', em:'⏰', nm:'Alarm', desc:'Atur alarm pada jam tertentu (saat tab terbuka)'},
-   {id:'pomodoro', em:'🍅', nm:'Pomodoro Timer', desc:'Fokus 25 menit, istirahat 5 menit'},
+   {id:'alarm', em:'⏰', nm:'Alarm', desc:'Alarm tetap bunyi walau aplikasi ditutup (versi APK)'},
+   {id:'pomodoro', em:'🍅', nm:'Pomodoro Timer', desc:'Fokus 25 menit, istirahat 5 menit — notif tetap masuk'},
    {id:'kalender', em:'📅', nm:'Kalender', desc:'Lihat kalender bulanan lengkap'},
    {id:'hitung-umur', em:'📆', nm:'Hitung Umur', desc:'Hitung usia detail dari tanggal lahir'},
    {id:'selisih-tanggal', em:'📅', nm:'Selisih Tanggal', desc:'Hitung jarak hari antara dua tanggal'},
@@ -13314,6 +13314,37 @@ TOOL_RENDERERS['stopwatch'] = (el)=>{
   };
 };
 
+/* ============================================================
+   SANN Native bridge (APK 4.0.0)
+   Dipakai Alarm, Kalender, Countdown & Pomodoro supaya notifikasinya
+   dijadwalkan ke sistem Android (AlarmManager) — tetap bunyi walau
+   aplikasi ditutup. Di browser biasa semuanya jatuh ke mode lama.
+   ============================================================ */
+const NATIVE = {
+  has(){ return !!(window.AndroidNative && typeof window.AndroidNative.version === 'function'); },
+  call(fn, ...a){ try{ return window.AndroidNative[fn](...a); }catch(e){ return null; } },
+  json(fn, ...a){ try{ const r = this.call(fn, ...a); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+};
+window.NATIVE = NATIVE;
+function _esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function nativeStatusHTML(){
+  if(!NATIVE.has()) return `<p class="small-note"><i class=svi-alert></i> Di browser, notifikasi hanya jalan saat halaman terbuka. Pasang aplikasi APK SANN Toolbox supaya tetap bunyi walau aplikasi ditutup.</p>`;
+  const p = NATIVE.json('permissionStatus') || {};
+  const miss = [];
+  if(p.notifications===false) miss.push('Notifikasi');
+  if(p.exactAlarm===false) miss.push('Alarm & pengingat');
+  const warn = miss.length ? `<br><b style="color:#f59e0b;">Izin belum aktif: ${miss.join(', ')}.</b>` : '';
+  const bat = p.batteryOpt===false ? `<button class="btn secondary" id="nvBat" style="margin-top:8px;">Izinkan jalan di latar belakang</button>` : '';
+  return `<div class="small-note" id="nvStatus"><i class=svi-check></i> Terhubung ke HP — notifikasi tetap masuk walau aplikasi ditutup.${warn}
+    <div class="btn-row" style="margin-top:8px;"><button class="btn secondary" id="nvPerm">Atur Izin</button></div>${bat}</div>`;
+}
+function nativeStatusBind(el){
+  const a = el.querySelector('#nvPerm'); if(a) a.onclick = ()=>NATIVE.call('requestPermissions');
+  const b = el.querySelector('#nvBat'); if(b) b.onclick = ()=>NATIVE.call('requestBatteryExemption');
+}
+/* sinkron alarm ke Android tiap aplikasi dibuka (jaga-jaga data berubah dari login/sinkron) */
+setTimeout(()=>{ try{ if(NATIVE.has()) NATIVE.call('syncAlarms', JSON.stringify(DB.get('alarms', []))); }catch(e){} }, 2500);
+
 /* -- Countdown Timer -- */
 TOOL_RENDERERS['countdown'] = (el)=>{
   el.innerHTML = `
@@ -13327,44 +13358,72 @@ TOOL_RENDERERS['countdown'] = (el)=>{
       <button class="btn" id="cdStart"><i class=svi-play></i> Mulai</button>
       <button class="btn danger" id="cdReset"><i class=svi-stop></i> Reset</button>
     </div>
-    <p class="small-note">Bunyi peringatan akan diputar saat waktu habis (pastikan tab tetap terbuka).</p>
+    ${nativeStatusHTML()}
   `;
-  let total=300, remain=300, iv=null;
+  nativeStatusBind(el);
+  let total=300, remain=300, iv=null, endAt=0;
+  const $ = id=>document.getElementById(id);
   function fmt(s){ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60; return h>0? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`; }
+  function readInputs(){ return (parseInt($('cdH').value)||0)*3600 + (parseInt($('cdM').value)||0)*60 + (parseInt($('cdS').value)||0); }
   function beep(){
+    if(NATIVE.has()) return; // notifikasi native sudah berbunyi
     try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(); const g=ctx.createGain();
       o.connect(g); g.connect(ctx.destination); o.frequency.value=880; o.start(); g.gain.setValueAtTime(.3,ctx.currentTime);
       g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+0.9); o.stop(ctx.currentTime+0.9);
     }catch(e){}
   }
-  document.getElementById('cdStart').onclick = (e)=>{
-    if(iv){ clearInterval(iv); iv=null; e.target.innerHTML = safeIc('<i class=svi-play></i> Lanjut'); return; }
-    if(remain<=0){
-      const h=parseInt(document.getElementById('cdH').value)||0, m=parseInt(document.getElementById('cdM').value)||0, s=parseInt(document.getElementById('cdS').value)||0;
-      total = h*3600+m*60+s; remain=total;
+  function finish(){
+    clearInterval(iv); iv=null; remain=0;
+    $('cdDisp').textContent = fmt(0);
+    $('cdStart').innerHTML = safeIc('<i class=svi-play></i> Mulai');
+    beep(); vibrate([200,100,200]); toast('<i class=svi-hourglass></i> Waktu habis!');
+  }
+  function tick(){
+    remain = Math.max(0, Math.ceil((endAt-Date.now())/1000));
+    $('cdDisp').textContent = fmt(remain);
+    if(remain<=0) finish();
+  }
+  function run(){
+    endAt = Date.now() + remain*1000;
+    NATIVE.call('startTimer', 'countdown', endAt, 'Countdown Timer', 'Waktu habis!');
+    $('cdStart').innerHTML = safeIc('<i class=svi-pause></i> Jeda');
+    iv = setInterval(tick, 250); tick();
+  }
+  $('cdStart').onclick = ()=>{
+    if(iv){ // jeda
+      clearInterval(iv); iv=null;
+      remain = Math.max(0, Math.ceil((endAt-Date.now())/1000));
+      NATIVE.call('cancel', 'countdown');
+      $('cdStart').innerHTML = safeIc('<i class=svi-play></i> Lanjut'); return;
     }
-    if(total<=0) return toast('Atur durasi terlebih dahulu');
-    e.target.innerHTML = safeIc('<i class=svi-pause></i> Jeda');
-    iv = setInterval(()=>{
-      remain--;
-      document.getElementById('cdDisp').textContent = fmt(Math.max(0,remain));
-      if(remain<=0){ clearInterval(iv); iv=null; beep(); vibrate([200,100,200]); toast('<i class=svi-hourglass></i> Waktu habis!'); document.getElementById('cdStart').innerHTML = safeIc('<i class=svi-play></i> Mulai'); }
-    },1000);
+    if(remain<=0){ total = readInputs(); remain = total; }
+    if(remain<=0) return toast('Atur durasi terlebih dahulu');
+    if(!total) total = remain;
+    run();
   };
-  document.getElementById('cdReset').onclick = ()=>{
-    clearInterval(iv); iv=null; remain=total=0;
-    document.getElementById('cdDisp').textContent='00:00';
-    document.getElementById('cdStart').innerHTML = safeIc('<i class=svi-play></i> Mulai');
+  $('cdReset').onclick = ()=>{
+    clearInterval(iv); iv=null; NATIVE.call('cancel', 'countdown');
+    total = remain = readInputs();
+    $('cdDisp').textContent = fmt(total);
+    $('cdStart').innerHTML = safeIc('<i class=svi-play></i> Mulai');
   };
-  ['cdH','cdM','cdS'].forEach(id=>document.getElementById(id).oninput=()=>{
-    const h=parseInt(document.getElementById('cdH').value)||0, m=parseInt(document.getElementById('cdM').value)||0, s=parseInt(document.getElementById('cdS').value)||0;
-    total=remain=h*3600+m*60+s;
-    document.getElementById('cdDisp').textContent = fmt(total);
+  ['cdH','cdM','cdS'].forEach(id=>$(id).oninput=()=>{
+    if(iv) return;
+    total = remain = readInputs();
+    $('cdDisp').textContent = fmt(total);
   });
+  // timer yang masih jalan di Android waktu tool dibuka lagi
+  const st = NATIVE.has() ? NATIVE.json('timerState', 'countdown') : null;
+  if(st && st.at > Date.now()){
+    endAt = st.at; remain = Math.ceil((endAt-Date.now())/1000); total = remain;
+    $('cdStart').innerHTML = safeIc('<i class=svi-pause></i> Jeda');
+    iv = setInterval(tick, 250); tick();
+  }
 };
 
 /* -- Alarm -- */
 TOOL_RENDERERS['alarm'] = (el)=>{
+  function syncNative(){ if(NATIVE.has()) NATIVE.call('syncAlarms', JSON.stringify(DB.get('alarms', []))); }
   function draw(){
     const alarms = DB.get('alarms', []);
     el.innerHTML = `
@@ -13376,23 +13435,26 @@ TOOL_RENDERERS['alarm'] = (el)=>{
         <button class="btn" id="alAdd"><i class=svi-clock></i> Tambah Alarm</button>
       </div>
       <div id="alList" class="tool-list">
-        ${alarms.length? alarms.map((a,i)=>`<div class="li-row"><div class="checkbox ${a.on?'checked':''}" onclick="alToggle(${i})">${a.on?'<i class=svi-check></i>':''}</div><div class="li-tx"><b>${a.time}</b> · ${a.label||'Alarm'}</div><div class="li-del" onclick="alDel(${i})"><i class=svi-trash></i></div></div>`).join('') : `<div class="empty-state"><span class="em"><i class=svi-clock></i></span>Belum ada alarm</div>`}
+        ${alarms.length? alarms.map((a,i)=>`<div class="li-row"><div class="checkbox ${a.on?'checked':''}" onclick="alToggle(${i})">${a.on?'<i class=svi-check></i>':''}</div><div class="li-tx"><b>${_esc(a.time)}</b> · ${_esc(a.label||'Alarm')}</div><div class="li-del" onclick="alDel(${i})"><i class=svi-trash></i></div></div>`).join('') : `<div class="empty-state"><span class="em"><i class=svi-clock></i></span>Belum ada alarm</div>`}
       </div>
-      <p class="small-note"><i class=svi-alert></i> Alarm hanya berbunyi saat halaman ini tetap terbuka di browser (keterbatasan web app).</p>
+      ${nativeStatusHTML()}
     `;
+    nativeStatusBind(el);
+    el.querySelector('#alAdd').onclick = ()=>{
+      const t = document.getElementById('alTime').value;
+      if(!t) return toast('Atur waktu dulu');
+      const lbl = document.getElementById('alLabel').value;
+      const a = DB.get('alarms', []); a.push({time:t, label:lbl, on:true}); DB.set('alarms',a);
+      syncNative();
+      toast('Alarm ditambahkan <i class=svi-clock></i>'); draw();
+    };
   }
-  window.alToggle = (i)=>{ const a=DB.get('alarms',[]); a[i].on=!a[i].on; DB.set('alarms',a); draw(); };
-  window.alDel = (i)=>{ const a=DB.get('alarms',[]); a.splice(i,1); DB.set('alarms',a); draw(); };
-  document.addEventListener('click', function handler(e){});
+  window.alToggle = (i)=>{ const a=DB.get('alarms',[]); a[i].on=!a[i].on; DB.set('alarms',a); syncNative(); draw(); };
+  window.alDel = (i)=>{ const a=DB.get('alarms',[]); a.splice(i,1); DB.set('alarms',a); syncNative(); draw(); };
   draw();
-  el.querySelector('#alAdd').onclick = ()=>{
-    const t = document.getElementById('alTime').value;
-    if(!t) return toast('Atur waktu dulu');
-    const lbl = document.getElementById('alLabel').value;
-    const a = DB.get('alarms', []); a.push({time:t, label:lbl, on:true}); DB.set('alarms',a);
- toast('Alarm ditambahkan <i class=svi-clock></i>'); draw();
-  };
-  if(!window._alarmLoop){
+  syncNative();
+  // mode browser: alarm hanya berbunyi saat halaman terbuka
+  if(!NATIVE.has() && !window._alarmLoop){
     window._alarmLoop = setInterval(()=>{
       const now = new Date(); const hm = pad(now.getHours())+':'+pad(now.getMinutes());
       if(now.getSeconds()!==0) return;
@@ -13417,37 +13479,70 @@ TOOL_RENDERERS['pomodoro'] = (el)=>{
       <button class="btn danger" id="pmReset"><i class=svi-stop></i> Reset</button>
     </div>
     <p class="small-note">Fokus 25 menit → istirahat 5 menit, berulang otomatis. Cocok untuk belajar/kerja fokus.</p>
+    ${nativeStatusHTML()}
   `;
-  let mode='focus', remain=25*60, iv=null;
+  nativeStatusBind(el);
+  const $ = id=>document.getElementById(id);
+  const DUR = {focus:25*60, break:5*60};
+  let mode='focus', remain=DUR.focus, iv=null, endAt=0;
   let count = DB.get('pomoCount', 0);
-  document.getElementById('pmCount').textContent = count;
+  $('pmCount').textContent = count;
   function fmt(s){ return pad(Math.floor(s/60))+':'+pad(s%60); }
-  function switchMode(){
-    mode = mode==='focus' ? 'break':'focus';
-    remain = mode==='focus' ? 25*60 : 5*60;
-    document.getElementById('pmMode').innerHTML = safeIc(mode==='focus' ? '<i class=svi-target></i> Fokus 25 menit' : '<i class=svi-coffee></i> Istirahat 5 menit');
-    document.getElementById('pmDisp').textContent = fmt(remain);
+  function paintMode(){
+    $('pmMode').innerHTML = safeIc(mode==='focus' ? '<i class=svi-target></i> Fokus 25 menit' : '<i class=svi-coffee></i> Istirahat 5 menit');
   }
-  document.getElementById('pmStart').onclick = (e)=>{
-    if(iv){ clearInterval(iv); iv=null; e.target.innerHTML = safeIc('<i class=svi-play></i> Lanjut'); return; }
-    e.target.innerHTML = safeIc('<i class=svi-pause></i> Jeda');
-    iv = setInterval(()=>{
-      remain--;
-      document.getElementById('pmDisp').textContent = fmt(Math.max(0,remain));
-      if(remain<=0){
- if(mode==='focus'){ count++; DB.set('pomoCount',count); document.getElementById('pmCount').textContent=count; }
-        toast(mode==='focus' ? '<i class=svi-target></i> Sesi fokus selesai! Saatnya istirahat.' : '<i class=svi-coffee></i> Istirahat selesai, kembali fokus!');
-        vibrate([200,100,200]);
-        switchMode();
-      }
-    },1000);
+  function setCount(c){ count=c; DB.set('pomoCount',count); $('pmCount').textContent=count; }
+  function applyNative(s){ mode=s.mode; endAt=s.endAt; paintMode(); if(s.count!=null && s.count!==count) setCount(s.count); }
+  function schedule(){ NATIVE.call('pomoStart', mode, endAt, count); }
+  function webSwitch(){
+    if(mode==='focus') setCount(count+1);
+    toast(mode==='focus' ? '<i class=svi-target></i> Sesi fokus selesai! Saatnya istirahat.' : '<i class=svi-coffee></i> Istirahat selesai, kembali fokus!');
+    vibrate([200,100,200]);
+    mode = mode==='focus' ? 'break' : 'focus'; paintMode();
+    endAt = Date.now() + DUR[mode]*1000;
+    if(NATIVE.has()) schedule();
+  }
+  function tick(){
+    remain = Math.ceil((endAt-Date.now())/1000);
+    if(remain<=0){
+      if(NATIVE.has()){
+        // Android otomatis pindah fase & mengirim notifikasi; kita cukup baca statusnya
+        const s = NATIVE.json('pomoState');
+        if(s && s.running && s.endAt > Date.now()){ applyNative(s); toast(s.mode==='break' ? '<i class=svi-target></i> Sesi fokus selesai! Saatnya istirahat.' : '<i class=svi-coffee></i> Istirahat selesai, kembali fokus!'); vibrate([200,100,200]); remain = Math.ceil((endAt-Date.now())/1000); }
+        else if(Date.now()-endAt > 10000){ webSwitch(); remain = Math.ceil((endAt-Date.now())/1000); }
+        else remain = 0;
+      } else { webSwitch(); remain = Math.ceil((endAt-Date.now())/1000); }
+    }
+    $('pmDisp').textContent = fmt(Math.max(0,remain));
+  }
+  function startRun(){
+    endAt = Date.now() + remain*1000;
+    if(NATIVE.has()) schedule();
+    $('pmStart').innerHTML = safeIc('<i class=svi-pause></i> Jeda');
+    iv = setInterval(tick, 250); tick();
+  }
+  $('pmStart').onclick = ()=>{
+    if(iv){
+      clearInterval(iv); iv=null;
+      remain = Math.max(0, Math.ceil((endAt-Date.now())/1000));
+      NATIVE.call('pomoStop');
+      $('pmStart').innerHTML = safeIc('<i class=svi-play></i> Lanjut'); return;
+    }
+    startRun();
   };
-  document.getElementById('pmReset').onclick = ()=>{
-    clearInterval(iv); iv=null; mode='focus'; remain=25*60;
-    document.getElementById('pmMode').innerHTML = safeIc('<i class=svi-target></i> Fokus 25 menit');
-    document.getElementById('pmDisp').textContent = fmt(remain);
-    document.getElementById('pmStart').innerHTML = safeIc('<i class=svi-play></i> Mulai');
+  $('pmReset').onclick = ()=>{
+    clearInterval(iv); iv=null; NATIVE.call('pomoStop');
+    mode='focus'; remain=DUR.focus; paintMode();
+    $('pmDisp').textContent = fmt(remain);
+    $('pmStart').innerHTML = safeIc('<i class=svi-play></i> Mulai');
   };
+  // pomodoro yang masih berjalan di Android waktu tool dibuka lagi
+  const st = NATIVE.has() ? NATIVE.json('pomoState') : null;
+  if(st && st.running){
+    applyNative(st); remain = Math.max(0, Math.ceil((endAt-Date.now())/1000));
+    $('pmStart').innerHTML = safeIc('<i class=svi-pause></i> Jeda');
+    iv = setInterval(tick, 250); tick();
+  }
 };
 
 /* -- Kalender -- */
@@ -13522,25 +13617,39 @@ function getHolidaysForMonth(y, m){ // m: 0-11
 }
 TOOL_RENDERERS['kalender'] = (el)=>{
   let view = new Date();
+  let sel = new Date(); // tanggal terpilih untuk pengingat
+  const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const ymd = d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const REMIND = [[0,'Tepat waktu'],[5,'5 menit sebelum'],[10,'10 menit sebelum'],[15,'15 menit sebelum'],[30,'30 menit sebelum'],[60,'1 jam sebelum'],[1440,'1 hari sebelum']];
+  function monthEvents(y,m){
+    return DB.get('calEvents', []).filter(e=>{ const d=new Date(e.start); return d.getFullYear()===y && d.getMonth()===m; })
+      .sort((a,b)=>a.start-b.start);
+  }
   function draw(){
     const y=view.getFullYear(), m=view.getMonth();
     const first = new Date(y,m,1);
     const startDay = first.getDay();
     const daysInMonth = new Date(y,m+1,0).getDate();
     const today = new Date();
-    const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     const monthHolidays = getHolidaysForMonth(y,m);
     const holidayByDay = {};
     monthHolidays.forEach(h=>{ if(!holidayByDay[h.day]) holidayByDay[h.day]=[]; holidayByDay[h.day].push(h); });
+    const evs = monthEvents(y,m);
+    const evByDay = {};
+    evs.forEach(e=>{ const d=new Date(e.start).getDate(); (evByDay[d]=evByDay[d]||[]).push(e); });
     let cells = '';
     for(let i=0;i<startDay;i++) cells += `<div></div>`;
     for(let d=1;d<=daysInMonth;d++){
       const isToday = d===today.getDate() && m===today.getMonth() && y===today.getFullYear();
+      const isSel = d===sel.getDate() && m===sel.getMonth() && y===sel.getFullYear();
       const hs = holidayByDay[d];
+      const hasEv = !!evByDay[d];
       const isLibur = hs && hs.some(h=>h.type==='libur');
-      const dotColor = hs ? (isLibur ? '#ef4444' : 'var(--accent)') : '';
-      cells += `<div class="kalDay" data-d="${d}" style="position:relative;text-align:center;padding:10px 0;border-radius:10px;font-size:13px;font-weight:600;cursor:${hs?'pointer':'default'};${isToday?'background:var(--accent);color:var(--on-accent);':(isLibur?'color:#ef4444;':'')}">${d}${hs?`<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:${isToday?'var(--on-accent)':dotColor};"></span>`:''}</div>`;
+      const dotColor = hs ? (isLibur ? '#ef4444' : 'var(--accent)') : '#22d3ee';
+      const ring = isSel && !isToday ? 'box-shadow:inset 0 0 0 2px var(--accent);' : '';
+      cells += `<div class="kalDay" data-d="${d}" style="position:relative;text-align:center;padding:10px 0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;${ring}${isToday?'background:var(--accent);color:var(--on-accent);':(isLibur?'color:#ef4444;':'')}">${d}${(hs||hasEv)?`<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:${isToday?'var(--on-accent)':dotColor};"></span>`:''}</div>`;
     }
+    const selLabel = `${sel.getDate()} ${monthNames[sel.getMonth()]} ${sel.getFullYear()}`;
     el.innerHTML = `
       <div class="row" style="justify-content:space-between;margin-bottom:10px;">
         <div class="icon-btn" id="kalPrev">←</div>
@@ -13552,21 +13661,80 @@ TOOL_RENDERERS['kalender'] = (el)=>{
       </div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">${cells}</div>
       <button class="btn secondary" id="kalToday" style="margin-top:16px;"><i class=svi-pin></i> Kembali ke Hari Ini</button>
+
+      <div class="card" style="margin-top:16px;">
+        <b style="font-size:13px;"><i class=svi-clock></i> Tambah Pengingat — ${selLabel}</b>
+        <div class="field" style="margin-top:8px;"><label>Judul</label><input type="text" id="kalEvTitle" placeholder="Rapat, ulang tahun, bayar tagihan…"></div>
+        <div class="grid2">
+          <div class="field"><label>Jam</label><input type="time" id="kalEvTime" value="08:00"></div>
+          <div class="field"><label>Ingatkan</label><select id="kalEvRemind">${REMIND.map(r=>`<option value="${r[0]}"${r[0]===10?' selected':''}>${r[1]}</option>`).join('')}</select></div>
+        </div>
+        <button class="btn" id="kalEvAdd"><i class=svi-calendar></i> ${NATIVE.has()?'Simpan ke Kalender HP':'Simpan Pengingat'}</button>
+      </div>
+
+      <div style="margin-top:18px;">
+        <b style="font-size:13px;"><i class=svi-clock></i> Pengingat Bulan Ini</b>
+        <div class="tool-list" style="margin-top:8px;">
+          ${evs.length ? evs.map(e=>{ const d=new Date(e.start); return `<div class="li-row"><div class="li-tx"><b>${d.getDate()} ${monthNames[d.getMonth()]} · ${pad(d.getHours())}:${pad(d.getMinutes())}</b> — ${_esc(e.title)}${e.remind?` <span style="color:var(--muted);font-size:11px;">(${e.remind>=1440?'1 hari':e.remind>=60?'1 jam':e.remind+' mnt'} sebelum)</span>`:''}</div><div class="li-del" data-del="${e.id}"><i class=svi-trash></i></div></div>`; }).join('') : '<div class="small-note">Belum ada pengingat bulan ini. Pilih tanggal lalu tambah pengingat.</div>'}
+        </div>
+      </div>
+
       <div style="margin-top:18px;">
         <b style="font-size:13px;"><i class=svi-sparkle></i> Hari Nasional & Hari Besar Bulan Ini</b>
         <div class="tool-list" style="margin-top:8px;">
           ${monthHolidays.length ? monthHolidays.map(h=>`<div class="li-row"><div class="li-tx">${h.type==='libur'?'<i class=svi-dotr></i>':'<i class=svi-dotb></i>'} ${h.day} ${monthNames[m]} — ${h.name}</div></div>`).join('') : '<div class="small-note">Tidak ada hari nasional/hari besar bulan ini.</div>'}
         </div>
       </div>
+      ${nativeStatusHTML()}
     `;
-    document.getElementById('kalPrev').onclick = ()=>{ view.setMonth(view.getMonth()-1); draw(); };
-    document.getElementById('kalNext').onclick = ()=>{ view.setMonth(view.getMonth()+1); draw(); };
-    document.getElementById('kalToday').onclick = ()=>{ view = new Date(); draw(); };
+    nativeStatusBind(el);
+    document.getElementById('kalPrev').onclick = ()=>{ view.setDate(1); view.setMonth(view.getMonth()-1); draw(); };
+    document.getElementById('kalNext').onclick = ()=>{ view.setDate(1); view.setMonth(view.getMonth()+1); draw(); };
+    document.getElementById('kalToday').onclick = ()=>{ view = new Date(); sel = new Date(); draw(); };
     el.querySelectorAll('.kalDay').forEach(cell=>{
       cell.onclick = ()=>{
         const d = parseInt(cell.dataset.d,10);
+        sel = new Date(y, m, d);
         const hs = holidayByDay[d];
+        draw();
         if(hs) toast(hs.map(h=>h.name).join(' · '));
+      };
+    });
+    document.getElementById('kalEvAdd').onclick = ()=>{
+      const title = document.getElementById('kalEvTitle').value.trim();
+      const time = document.getElementById('kalEvTime').value;
+      const remind = parseInt(document.getElementById('kalEvRemind').value,10)||0;
+      if(!title) return toast('Isi judul pengingat dulu');
+      if(!time) return toast('Atur jam dulu');
+      const [hh,mm] = time.split(':').map(Number);
+      const start = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate(), hh, mm, 0, 0).getTime();
+      if(start - remind*60000 < Date.now() - 60000) return toast('Waktu pengingat sudah lewat');
+      const id = 'ev'+start+'_'+Math.floor(Math.random()*1e6);
+      let calOk = false;
+      if(NATIVE.has()){
+        const r = NATIVE.json('addCalendarEvent', id, title, '', start, start+3600000, remind);
+        calOk = !!(r && r.calendar);
+        if(r && r.eventId) { /* simpan id kalender sistem untuk hapus nanti */ }
+        const list = DB.get('calEvents', []);
+        list.push({id, title, start, remind, sysId: r && r.eventId ? String(r.eventId) : ''});
+        DB.set('calEvents', list);
+        toast(calOk ? 'Tersimpan di Kalender HP + notifikasi aktif' : 'Notifikasi aktif (izin Kalender belum diberikan)');
+      } else {
+        const list = DB.get('calEvents', []);
+        list.push({id, title, start, remind, sysId:''});
+        DB.set('calEvents', list);
+        toast('Tersimpan. Notifikasi hanya aktif di aplikasi APK.');
+      }
+      draw();
+    };
+    el.querySelectorAll('[data-del]').forEach(b=>{
+      b.onclick = ()=>{
+        const id = b.getAttribute('data-del');
+        const list = DB.get('calEvents', []);
+        const ev = list.find(x=>x.id===id);
+        if(NATIVE.has() && ev) NATIVE.call('deleteCalendarEvent', ev.id, ev.sysId||'');
+        DB.set('calEvents', list.filter(x=>x.id!==id));
+        draw();
       };
     });
   }
